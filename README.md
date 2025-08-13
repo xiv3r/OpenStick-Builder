@@ -4,14 +4,14 @@ Image builder for MSM8916 based 4G modem dongles
 This builder uses the precompiled [kernel](https://pkgs.postmarketos.org/package/master/postmarketos/aarch64/linux-postmarketos-qcom-msm8916) provided by [postmarketOS](https://postmarketos.org/) for Qualcomm MSM8916 devices.
 
 > [!NOTE]
-> This branch generates a `debian` image, use the [alpine branch](https://github.com/kinsamanka/OpenStick-Builder/tree/alpine) for an `alpine` image.
+> This repository creates a Debian-based image. For an Alpine-based image, refer to the [original repository](https://github.com/kinsamanka/OpenStick-Builder/tree/alpine) by kinsamanka.
 
 ## Build Instructions
 ### Build locally
-This has been tested to work on **Ubuntu 22.04**
+This has been tested to work on **Ubuntu 22.04, 24.04 and 25.04**
 - clone
   ```shell
-  git clone --recurse-submodules https://github.com/LongQT-sea/OpenStick-Builder.git
+  git clone --recurse-submodules https://github.com/Mio-sha512/OpenStick-Builder.git
   cd OpenStick-Builder/
   ```
 #### Quick
@@ -27,13 +27,13 @@ This has been tested to work on **Ubuntu 22.04**
   ```
 - build hyp and lk2nd
 
-  these custom bootloader allows basic support for `extlinux.conf` file, similar to u-boot and depthcharge.
+  These custom bootloaders allow basic support for an `extlinux.conf` file, similar to U-Boot and Depthcharge.
   ```shell
   sudo scripts/build_hyp_aboot.sh
   ```
 - extract Qualcomm firmware
 
-  extracts the bootloader and creates a new partition table that utilizes the full emmc space
+  Extracts the bootloader and creates a new partition table that utilizes the full eMMC space
   ```shell
   sudo scripts/extract_fw.sh
   ```
@@ -78,7 +78,7 @@ Edit [`scripts/setup.sh`](scripts/setup.sh) to add/remove packages. Note that th
 
 ### Steps
 - Ensure that your device is running the stock firmware
-- Enter Qualcom EDL mode using this [guide](https://wiki.postmarketos.org/wiki/Zhihe_series_LTE_dongles_(generic-zhihe)#How_to_enter_flash_mode)
+- Enter Qualcomm EDL mode using this [guide](https://wiki.postmarketos.org/wiki/Zhihe_series_LTE_dongles_(generic-zhihe)#How_to_enter_flash_mode)
 - Backup required partitions
 
   The following files are required from the original firmware:
