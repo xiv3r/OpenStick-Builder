@@ -16,7 +16,7 @@ apt install -qqy --no-install-recommends \
     bridge-utils \
     dnsmasq \
     iptables \
-    libconfig9 \
+    libconfig11 \
     locales \
     modemmanager \
     netcat-traditional \
