@@ -9,6 +9,7 @@ apt install -y \
     cmake \
     debian-archive-keyring \
     debootstrap \
+    mmdebstrap \
     device-tree-compiler \
     fdisk \
     g++-aarch64-linux-gnu \
