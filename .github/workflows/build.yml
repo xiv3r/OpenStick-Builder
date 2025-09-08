@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   decide:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     outputs:
       skip: ${{ steps.check.outputs.skip }}
     steps:
@@ -36,7 +36,7 @@ jobs:
   build:
     needs: decide
     if: needs.decide.outputs.skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - uses: actions/checkout@v4
