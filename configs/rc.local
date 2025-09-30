@@ -29,4 +29,11 @@ cleanup_wwan() {
 }
 
 main
+
+# CPU Perf+
+echo performance > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+
+# Freq Perf+
+cat /sys/devices/system/cpu/cpufreq/policy0/cpuinfo_max_freq | tee /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq >/dev/null
+
 exit 0
