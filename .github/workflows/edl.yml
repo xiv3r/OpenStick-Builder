@@ -4,72 +4,79 @@ on:
   workflow_dispatch:
   release:
     types: [published]
-
-env:
-  ISO_URL_AMD64: https://ava6.androidfilehost.com/dl/MCpYMAB6EdQt9vo0ATb3yQ/1760036050/15664248565197184488/re_livedvdV4.iso?
-  ISO_NAME_AMD64: edl_ubuntu_x86_64.iso
-
+    
 jobs:
   download-and-release:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout repository with LFS
+    - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        lfs: true
-        fetch-depth: 0  # Fetch full history for proper LFS management
-        
-    - name: Set up Git LFS
-      run: git lfs install
-      
-    - name: Track large files with LFS
+        fetch-depth: 0
+
+    - name: Download files
       run: |
-        git lfs track "*.iso"
-        git add .gitattributes
-        
-    - name: Remove all existing ISO files from repository and LFS
+        sudo apt update
+        sudo apt install tar build-essential file libncurses-dev zlib1g-dev gawk git gettext libssl-dev xsltproc rsync wget unzip python3 python3-full python3-venv -y
+        mkdir -p downloads
+        cd downloads
+        wget -O Ubuntu_EDL.iso https://ava6.androidfilehost.com/dl/u2tWmXKFGtNMwqLo3ZY35g/1760037834/15664248565197184488/re_livedvdV4.iso?
+           
+    - name: Determine release tag
+      id: get_tag
       run: |
-        # Remove all .iso files from repository and LFS tracking
-        git lfs ls-files | grep "\.iso" | cut -d' ' -f3 | while read file; do
-          echo "Removing LFS file: $file"
-          git rm "$file"
-        done || echo "No existing ISO files found"
-        
-        # Also remove any untracked ISO files
-        find . -name "*.iso" -type f -delete
-        
-    - name: Commit removal of old files
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git commit -m "Remove all old ISO files" || echo "No files to delete"
-        
-    - name: Download AMD64 ISO
-      run: |
-        echo "Downloading AMD64 ISO..."
-        wget -O $ISO_NAME_AMD64 $ISO_URL_AMD64
-        echo "AMD64 ISO downloaded successfully"
-        ls -lh $ISO_NAME_AMD64
-        
-    - name: Add and commit new files with LFS
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add $ISO_NAME_AMD64
-        git commit -m "Update: EDL ISO via Git LFS (AMD64)"
-    
-    - name: Force push changes with LFS
-      run: |
-        git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }} --force-with-lease
-    
-    - name: Upload AMD64 ISO to release
-      if: github.event.release != null
-      uses: actions/upload-release-asset@v1
+        if [ "${{ github.event_name }}" == "release" ]; then
+          TAG_NAME="${{ github.event.release.tag_name }}"
+        else
+          TAG_NAME="ubuntu-edl"
+        fi
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+    - name: Delete existing release assets
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: releases } = await github.rest.repos.listReleases({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          
+          const targetRelease = releases.find(release => release.tag_name === '${{ steps.get_tag.outputs.tag_name }}');
+          
+          if (targetRelease) {
+            console.log(`Found release with tag: ${{ steps.get_tag.outputs.tag_name }}`);
+            console.log(`Release ID: ${targetRelease.id}`);
+            
+            const { data: assets } = await github.rest.repos.listReleaseAssets({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: targetRelease.id
+            });
+            
+            console.log(`Found ${assets.length} assets to delete`);
+            
+            for (const asset of assets) {
+              console.log(`Deleting asset: ${asset.name} (ID: ${asset.id})`);
+              await github.rest.repos.deleteReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                asset_id: asset.id
+              });
+            }
+            
+            console.log('All existing assets deleted');
+          } else {
+            console.log(`No release found with tag: ${{ steps.get_tag.outputs.tag_name }}`);
+          }
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload files to existing release
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./$ISO_NAME_AMD64
-        asset_name: $ISO_NAME_AMD64
-        asset_content_type: application/octet-stream
+        tag_name: ${{ steps.get_tag.outputs.tag_name }}
+        files: |
+          downloads/*.*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
