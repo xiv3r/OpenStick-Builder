@@ -1,0 +1,75 @@
+name: edl
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  ISO_URL_AMD64: https://ava6.androidfilehost.com/dl/MCpYMAB6EdQt9vo0ATb3yQ/1760036050/15664248565197184488/re_livedvdV4.iso?
+  ISO_NAME_AMD64: edl_ubuntu_x86_64.iso
+
+jobs:
+  download-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository with LFS
+      uses: actions/checkout@v4
+      with:
+        lfs: true
+        fetch-depth: 0  # Fetch full history for proper LFS management
+        
+    - name: Set up Git LFS
+      run: git lfs install
+      
+    - name: Track large files with LFS
+      run: |
+        git lfs track "*.iso"
+        git add .gitattributes
+        
+    - name: Remove all existing ISO files from repository and LFS
+      run: |
+        # Remove all .iso files from repository and LFS tracking
+        git lfs ls-files | grep "\.iso" | cut -d' ' -f3 | while read file; do
+          echo "Removing LFS file: $file"
+          git rm "$file"
+        done || echo "No existing ISO files found"
+        
+        # Also remove any untracked ISO files
+        find . -name "*.iso" -type f -delete
+        
+    - name: Commit removal of old files
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git commit -m "Remove all old ISO files" || echo "No files to delete"
+        
+    - name: Download AMD64 ISO
+      run: |
+        echo "Downloading AMD64 ISO..."
+        wget -O $ISO_NAME_AMD64 $ISO_URL_AMD64
+        echo "AMD64 ISO downloaded successfully"
+        ls -lh $ISO_NAME_AMD64
+        
+    - name: Add and commit new files with LFS
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add $ISO_NAME_AMD64
+        git commit -m "Update: EDL ISO via Git LFS (AMD64)"
+        
+    - name: Force push changes with LFS
+      run: |
+        git push origin HEAD:${{ github.ref_name }} --force-with-lease
+        
+    - name: Upload AMD64 ISO to release
+      if: github.event.release != null
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./$ISO_NAME_AMD64
+        asset_name: $ISO_NAME_AMD64
+        asset_content_type: application/octet-stream
